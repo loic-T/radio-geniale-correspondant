@@ -8,7 +8,7 @@ L'écran d'accueil reprend le site radiogeniale.neocities.org : le logo, le bout
 Différences avec la page web :
 
 - **Le micro continue de fonctionner quand l'appli passe en arrière-plan** ou que le téléphone est verrouillé, sur Android comme sur iPhone. La page web ne pouvait pas le faire, parce que les navigateurs mobiles coupent le micro.
-- Le son passe par du WebRTC natif et non par une iframe. Les réglages de la page sont repris : audio seul (`&vd=0`), micro sans traitement (`&proaudio`) et mono (`&monomic`).
+- Le son passe par du WebRTC natif et non par une iframe. Les réglages de la page sont repris : audio seul (`&vd=0`), mono (`&monomic`) et micro sans aucun traitement : ni annulation d'écho, ni réduction de bruit, ni gain automatique, ni noise gate (`&aec=0&dn=0&agc=0&ng=0`).
 - Le nom et le mot de passe peuvent être mémorisés sur le téléphone.
 - L'écran affiche l'état de la connexion, le nombre de récepteurs connectés et la durée du direct.
 
@@ -93,7 +93,7 @@ Le micro en arrière-plan repose sur le mode « Audio » (déjà activé dans `I
 | Identifiant de l'app | `android/app/build.gradle` (`applicationId`) et Xcode (Bundle Identifier) |
 | Couleurs | `lib/radio/theme.dart` (reprises de `style.css`) |
 | Logo | `assets/logo.png` |
-| Traitements audio (équivalent de `&proaudio`) | `rgProAudio` en haut de `lib/src/call_sample/signaling.dart`. Passez-le à `false` si le son est trop faible ou trop bruité : cela active le gain automatique et la réduction de bruit |
+| Traitements audio (équivalent de `&aec=0&dn=0&agc=0`) | `rgProAudio` en haut de `lib/src/call_sample/signaling.dart`. Passez-le à `false` si le son est trop faible ou trop bruité : cela active le gain automatique et la réduction de bruit |
 | Textes des écrans | `lib/radio/login_screen.dart` et `lib/radio/live_screen.dart` |
 
 ## Structure
