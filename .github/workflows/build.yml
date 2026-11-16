@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: build
+  cancel-in-progress: true
+
 jobs:
   android:
     name: Android (APK)
