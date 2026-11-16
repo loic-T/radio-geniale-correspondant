@@ -14,6 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Le code du projet est fourni dans projet.zip (un seul fichier à
+      # téléverser sur GitHub) : on le décompresse par-dessus le dépôt.
+      - name: Décompresser projet.zip
+        run: unzip -o -q projet.zip -d .
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -25,9 +30,6 @@ jobs:
           flutter-version: 3.35.x
           cache: true
 
-      # Signature « officielle » (facultative) : si les secrets ne sont pas
-      # définis, l'APK est signé avec une clé de test, ce qui suffit pour
-      # l'installer directement sur un téléphone.
       - name: Préparer la clé de signature
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -55,10 +57,9 @@ jobs:
           name: RadioGeniale-Correspondant-android
           path: RadioGeniale-Correspondant.apk
 
-      # Paquet pour le Google Play Store (uniquement si la clé est configurée)
       - name: Paquet Play Store (AAB)
         if: env.HAS_KEYSTORE == 'true'
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --dart-define=RG_BUILD=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         if: env.HAS_KEYSTORE == 'true'
         with:
@@ -71,6 +72,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Décompresser projet.zip
+        run: unzip -o -q projet.zip -d .
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -78,10 +82,6 @@ jobs:
           cache: true
 
       - run: flutter pub get
-
-      # Compilation sans signature : vérifie que l'appli iOS se construit.
-      # Pour l'installer sur un iPhone, il faut la signer avec un compte
-      # Apple Developer (voir README, section iPhone).
       - run: flutter build ios --release --no-codesign
 
       - name: Archiver Runner.app
