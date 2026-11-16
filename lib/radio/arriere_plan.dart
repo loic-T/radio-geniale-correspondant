@@ -20,6 +20,7 @@ class ArrierePlan {
         await _canal.invokeMethod('start', {
           'titre': 'Radio Géniale – micro actif',
           'texte': 'En direct : $nom. Touchez pour revenir à l\'appli.',
+          'mode': 'micro',
         });
       } catch (e) {
         // ignore: avoid_print
@@ -48,8 +49,29 @@ class ArrierePlan {
   static Future<void> arreter() async {
     if (Platform.isAndroid) {
       try {
-        await _canal.invokeMethod('stop');
+        await _canal.invokeMethod('stop', {'mode': 'micro'});
       } catch (_) {}
     }
+  }
+
+  /// Android : garde la lecture de la radio active en arrière-plan
+  /// (notification « à l'écoute »). Sur iOS, le mode audio d'arrière-plan
+  /// suffit.
+  static Future<void> demarrerRadio() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _canal.invokeMethod('start', {
+        'titre': 'Radio Géniale',
+        'texte': 'À l\'écoute en direct. Touchez pour revenir à l\'appli.',
+        'mode': 'radio',
+      });
+    } catch (_) {}
+  }
+
+  static Future<void> arreterRadio() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _canal.invokeMethod('stop', {'mode': 'radio'});
+    } catch (_) {}
   }
 }

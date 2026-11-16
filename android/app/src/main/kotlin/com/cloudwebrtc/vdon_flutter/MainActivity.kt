@@ -21,7 +21,8 @@ class MainActivity : FlutterActivity() {
                             MicService.demarrer(
                                 applicationContext,
                                 call.argument<String>("titre") ?: "Radio Géniale – micro actif",
-                                call.argument<String>("texte") ?: "Touchez pour revenir à l'appli."
+                                call.argument<String>("texte") ?: "Touchez pour revenir à l'appli.",
+                                call.argument<String>("mode") ?: MicService.MODE_MICRO
                             )
                             result.success(true)
                         } catch (e: Exception) {
@@ -29,7 +30,12 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                     "stop" -> {
-                        MicService.arreter(applicationContext)
+                        // Si un mode est précisé, on n'arrête que s'il est actif
+                        // (évite que l'arrêt de la radio coupe le micro, et inversement).
+                        val mode = call.argument<String>("mode")
+                        if (mode == null || mode == MicService.modeActuel) {
+                            MicService.arreter(applicationContext)
+                        }
                         result.success(true)
                     }
                     else -> result.notImplemented()

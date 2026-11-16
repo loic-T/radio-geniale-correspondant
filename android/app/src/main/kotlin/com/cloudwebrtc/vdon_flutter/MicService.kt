@@ -32,11 +32,18 @@ class MicService : Service() {
         private const val NOTIF_ID = 4242
         const val EXTRA_TITRE = "titre"
         const val EXTRA_TEXTE = "texte"
+        const val EXTRA_MODE = "mode"
+        const val MODE_MICRO = "micro"
+        const val MODE_RADIO = "radio"
 
-        fun demarrer(context: Context, titre: String, texte: String) {
+        /** Mode en cours (micro ou radio), null si le service est arrêté. */
+        @Volatile var modeActuel: String? = null
+
+        fun demarrer(context: Context, titre: String, texte: String, mode: String = MODE_MICRO) {
             val intent = Intent(context, MicService::class.java)
                 .putExtra(EXTRA_TITRE, titre)
                 .putExtra(EXTRA_TEXTE, texte)
+                .putExtra(EXTRA_MODE, mode)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {
@@ -57,15 +64,18 @@ class MicService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val titre = intent?.getStringExtra(EXTRA_TITRE) ?: "Radio Géniale – micro actif"
         val texte = intent?.getStringExtra(EXTRA_TEXTE) ?: "Touchez pour revenir à l'appli."
+        val mode = intent?.getStringExtra(EXTRA_MODE) ?: MODE_MICRO
 
         creerCanal()
         val notification = construireNotification(titre, texte)
 
         try {
-            val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-            } else {
-                0
+            val type = when {
+                mode == MODE_RADIO && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                mode == MODE_MICRO && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ->
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                else -> 0
             }
             ServiceCompat.startForeground(this, NOTIF_ID, notification, type)
         } catch (e: Exception) {
@@ -74,6 +84,7 @@ class MicService : Service() {
             return START_NOT_STICKY
         }
 
+        modeActuel = mode
         acquerirVerrous()
         return START_NOT_STICKY
     }
@@ -84,10 +95,10 @@ class MicService : Service() {
             if (manager.getNotificationChannel(CANAL_ID) == null) {
                 val canal = NotificationChannel(
                     CANAL_ID,
-                    "Micro en direct",
+                    "Radio Géniale en cours",
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
-                    description = "Indique que le micro est transmis à Radio Géniale"
+                    description = "Écoute de la radio ou micro en direct"
                     setShowBadge(false)
                 }
                 manager.createNotificationChannel(canal)
@@ -159,6 +170,7 @@ class MicService : Service() {
     }
 
     override fun onDestroy() {
+        modeActuel = null
         libererVerrous()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         super.onDestroy()

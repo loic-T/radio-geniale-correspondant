@@ -22,6 +22,11 @@ dependencies:
   http: ^1.3.0
   # Mémorise le nom du correspondant
   shared_preferences: ^2.5.3
+  # Écoute du direct de la radio
+  just_audio: ">=0.9.40 <0.11.0"
+  audio_session: ">=0.1.21 <0.3.0"
+  # Lien mail de la page contact
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

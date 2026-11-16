@@ -16,6 +16,7 @@
     <!-- Micro conservé en arrière-plan / écran verrouillé -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
@@ -25,6 +26,18 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <uses-feature android:name="android.hardware.microphone" android:required="true"/>
+
+    <!-- Ouverture de l'appli mail (contact) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
 
     <application
         android:label="Radio Géniale"
@@ -52,7 +65,7 @@
         <!-- Radio Géniale : service de premier plan « micro actif » -->
         <service
             android:name=".MicService"
-            android:foregroundServiceType="microphone"
+            android:foregroundServiceType="microphone|mediaPlayback"
             android:exported="false"/>
     </application>
 </manifest>

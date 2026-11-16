@@ -73,6 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: RgColors.fond,
+        foregroundColor: RgColors.texte,
+        elevation: 0,
+        title: const Text('Accès correspondant'),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

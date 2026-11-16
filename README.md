@@ -3,6 +3,8 @@
 Application Android et iPhone pour les correspondants de **Radio Géniale**.
 Elle remplace la page web `radiogeniale.neocities.org/correspondant` : le correspondant saisit son nom et le mot de passe, appuie sur **COMMENCER**, et son micro part en direct vers la régie via VDO.Ninja. Le gros bouton **MUTÉ / DÉ-MUTÉ** est conservé.
 
+L'écran d'accueil reprend le site radiogeniale.neocities.org : le logo, le bouton **ÉCOUTER LA RADIO / STOP** pour le direct (l'écoute continue en arrière-plan), le contact par mail et un bouton **ACCÈS CORRESPONDANT**. La radio se coupe automatiquement quand on passe en mode correspondant, pour éviter l'écho dans le micro.
+
 Différences avec la page web :
 
 - **Le micro continue de fonctionner quand l'appli passe en arrière-plan** ou que le téléphone est verrouillé, sur Android comme sur iPhone. La page web ne pouvait pas le faire, parce que les navigateurs mobiles coupent le micro.
@@ -98,6 +100,8 @@ Le micro en arrière-plan repose sur le mode « Audio » (déjà activé dans `I
 
 ```
 lib/main.dart                      point d'entrée
+lib/radio/accueil_screen.dart      accueil : écoute du direct, contact, accès correspondant
+lib/radio/lecteur_radio.dart       lecteur du flux radio
 lib/radio/login_screen.dart        écran nom + mot de passe + COMMENCER
 lib/radio/live_screen.dart         écran de direct (bouton MUTÉ / DÉ-MUTÉ)
 lib/radio/arriere_plan.dart        maintien du micro en arrière-plan

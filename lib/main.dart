@@ -6,7 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'radio/login_screen.dart';
+import 'radio/accueil_screen.dart';
 import 'radio/theme.dart';
 
 void main() {
@@ -32,7 +32,7 @@ class RadioGenialeApp extends StatelessWidget {
       title: 'Radio Géniale',
       debugShowCheckedModeBanner: false,
       theme: rgTheme(),
-      home: const LoginScreen(),
+      home: const AccueilScreen(),
     );
   }
 }
