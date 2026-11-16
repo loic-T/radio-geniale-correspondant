@@ -45,7 +45,7 @@ jobs:
           PROPS
 
       - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter build apk --release --dart-define=RG_BUILD=${{ github.run_number }}
 
       - name: Renommer l'APK
         run: cp build/app/outputs/flutter-apk/app-release.apk RadioGeniale-Correspondant.apk
