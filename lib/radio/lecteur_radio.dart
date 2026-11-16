@@ -24,6 +24,13 @@ class LecteurRadio extends ChangeNotifier {
   bool _aDemarre = false;
 
   EtatLecteur get etat => _etat;
+
+  /// Détail technique de la dernière erreur (affiché pour le diagnostic).
+  String? derniereErreur;
+
+  /// Titre en cours d'après les métadonnées du flux (ex. « MANIFESTATION -
+  /// 24 octobre 2026 - Paris (rediffusion) »), null si inconnu.
+  String? titre;
   bool get actif =>
       _etat == EtatLecteur.lecture || _etat == EtatLecteur.chargement;
 
@@ -36,13 +43,21 @@ class LecteurRadio extends ChangeNotifier {
   Future<void> ecouter() async {
     _veutJouer = true;
     _aDemarre = false;
+    derniereErreur = null;
     _changerEtat(EtatLecteur.chargement);
     try {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
       await session.setActive(true);
 
-      final player = _player ?? AudioPlayer();
+      // User-Agent de navigateur : certains serveurs de flux refusent les
+      // lecteurs inconnus alors qu'ils acceptent Chrome.
+      final player = _player ??
+          AudioPlayer(
+            userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36 '
+                'RadioGeniale/1.0',
+          );
       if (_player == null) {
         _player = player;
         _abonnement = player.playerStateStream.listen((s) {
@@ -65,10 +80,19 @@ class LecteurRadio extends ChangeNotifier {
             _changerEtat(EtatLecteur.chargement);
           }
         }, onError: (Object e, StackTrace st) {
+          derniereErreur = e.toString();
           _veutJouer = false;
           _changerEtat(EtatLecteur.erreur);
           ArrierePlan.arreterRadio();
         });
+        // Métadonnées ICY envoyées par le serveur (titre de l'émission).
+        player.icyMetadataStream.listen((meta) {
+          final t = meta?.info?.title?.trim();
+          if (t != null && t.isNotEmpty && t != titre) {
+            titre = t;
+            notifyListeners();
+          }
+        }, onError: (Object e, StackTrace st) {});
       }
 
       // On recharge l'URL à chaque fois pour repartir du direct.
@@ -79,6 +103,7 @@ class LecteurRadio extends ChangeNotifier {
       unawaited(player.play());
     } catch (e) {
       debugPrint('Lecture impossible : $e');
+      derniereErreur = e.toString();
       _veutJouer = false;
       _changerEtat(EtatLecteur.erreur);
       await ArrierePlan.arreterRadio();

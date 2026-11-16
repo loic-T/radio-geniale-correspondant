@@ -1,5 +1,8 @@
 package com.cloudwebrtc.vdon_flutter
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -38,9 +41,38 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(true)
                     }
+                    "signalACote" -> result.success(ouvrirSignalACote())
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /**
+     * Ouvre Signal à côté de l'appli (écran partagé). Android place Signal
+     * dans l'autre moitié de l'écran quand l'appareil le permet ; sinon
+     * Signal s'ouvre normalement. Renvoie "ok" ou "absent".
+     */
+    private fun ouvrirSignalACote(): String {
+        val signal = packageManager.getLaunchIntentForPackage(SIGNAL)
+        if (signal == null) {
+            val store = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$SIGNAL"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                startActivity(store)
+            } catch (e: ActivityNotFoundException) {
+                startActivity(Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=$SIGNAL"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+            return "absent"
+        }
+        signal.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(signal)
+        return "ok"
+    }
+
+    companion object {
+        private const val SIGNAL = "org.thoughtcrime.securesms"
     }
 
     override fun onDestroy() {
