@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Le serveur du flux radio peut rediriger vers une adresse en http:// :
-     on l'autorise uniquement pour ce domaine. -->
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">world-stream.net</domain>
-    </domain-config>
-</network-security-config>
