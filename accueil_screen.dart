@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'lecteur_radio.dart';
 import 'login_screen.dart';
 import 'theme.dart';
+import 'version.dart';
 
 const String emailContact = 'radiogeniale@proton.me';
 
@@ -94,9 +95,19 @@ class AccueilScreen extends StatelessWidget {
               color: RgColors.fondSecondaire,
               padding: EdgeInsets.fromLTRB(
                   16, 14, 16, 14 + MediaQuery.of(context).padding.bottom),
-              child: const Text(
-                '© Radio Géniale 2026',
-                style: TextStyle(color: Colors.white, fontSize: 15),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      '© Radio Géniale 2026',
+                      style: TextStyle(color: Colors.white, fontSize: 15),
+                    ),
+                  ),
+                  Text(
+                    libelleVersion,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
               ),
             ),
           ],
@@ -193,11 +204,10 @@ class _ZoneLecteur extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white, fontSize: 18),
                     ),
-                    if (etat == EtatLecteur.erreur &&
-                        lecteur.derniereErreur != null) ...[
+                    if (etat == EtatLecteur.erreur) ...[
                       const SizedBox(height: 6),
                       SelectableText(
-                        lecteur.derniereErreur!,
+                        'Détail : ${lecteur.derniereErreur ?? 'aucun'}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             color: Colors.white60, fontSize: 11),

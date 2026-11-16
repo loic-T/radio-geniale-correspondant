@@ -50,7 +50,14 @@ class LecteurRadio extends ChangeNotifier {
       await session.configure(const AudioSessionConfiguration.music());
       await session.setActive(true);
 
-      final player = _player ?? AudioPlayer();
+      // User-Agent de navigateur : certains serveurs de flux refusent les
+      // lecteurs inconnus alors qu'ils acceptent Chrome.
+      final player = _player ??
+          AudioPlayer(
+            userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36 '
+                'RadioGeniale/1.0',
+          );
       if (_player == null) {
         _player = player;
         _abonnement = player.playerStateStream.listen((s) {

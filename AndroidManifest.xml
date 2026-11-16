@@ -29,6 +29,8 @@
 
     <!-- Ouverture de l'appli mail (contact) -->
     <queries>
+        <!-- Bouton « Signal à côté » -->
+        <package android:name="org.thoughtcrime.securesms" />
         <intent>
             <action android:name="android.intent.action.SENDTO" />
             <data android:scheme="mailto" />
@@ -50,6 +52,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:resizeableActivity="true"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"

@@ -1,7 +1,7 @@
 name: vdo_ninja
 description: "Radio Géniale – application correspondant (micro en direct via VDO.Ninja). Fork de vdon_flutter (GPL-3.0)."
 publish_to: "none"
-version: 1.0.0+1
+version: 1.2.0+3
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

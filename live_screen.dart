@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../src/call_sample/signaling.dart';
 import 'arriere_plan.dart';
 import 'lecteur_radio.dart';
+import 'signal.dart';
 import 'theme.dart';
 import 'turn_servers.dart';
 
@@ -248,9 +249,6 @@ class _LiveScreenState extends State<LiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final statut = _statut;
-    final pret = _signaling != null && _etat != _Etat.erreur && _debut != null;
-
     return PopScope(
       canPop: _etat == _Etat.erreur,
       onPopInvokedWithResult: (didPop, _) {
@@ -258,81 +256,203 @@ class _LiveScreenState extends State<LiveScreen> {
       },
       child: Scaffold(
         body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Image.asset('assets/logo.png', height: 90),
-              ),
-              Text(
-                widget.nom,
-                style: const TextStyle(
-                    color: RgColors.texte,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.circle, size: 12, color: statut.couleur),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(statut.texte,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: statut.couleur, fontSize: 16)),
-                  ),
-                ],
-              ),
-              if (_duree.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(_duree,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                          fontFeatures: [FontFeature.tabularFigures()])),
-                ),
-              Expanded(
-                child: Center(
-                  child: _etat == _Etat.erreur
-                      ? _blocErreur()
-                      : pret
-                          ? _boutonMicro()
-                          : const CircularProgressIndicator(
-                              color: RgColors.texte),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _etat == _Etat.erreur
-                    ? ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('RETOUR'),
-                      )
-                    : TextButton.icon(
-                        onPressed: _confirmerSortie,
-                        icon: const Icon(Icons.call_end, color: RgColors.texte),
-                        label: const Text('Terminer le direct',
-                            style:
-                                TextStyle(color: RgColors.texte, fontSize: 16)),
-                      ),
-              ),
-            ],
+          // L'écran s'adapte à la place disponible : plein écran, écran
+          // partagé (ex. avec Signal), fenêtre flottante, paysage…
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final compact = c.maxHeight < 520;
+              final paysage = c.maxWidth > c.maxHeight * 1.3;
+              if (compact && paysage) return _dispositionPaysage(c);
+              return _dispositionVerticale(c, compact);
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _boutonMicro() {
+  bool get _pret => _signaling != null && _etat != _Etat.erreur && _debut != null;
+
+  /// Pastille d'état + durée.
+  Widget _statutLigne({required bool compact}) {
+    final statut = _statut;
+    final taille = compact ? 14.0 : 16.0;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.circle, size: compact ? 10 : 12, color: statut.couleur),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            _duree.isEmpty ? statut.texte : '${statut.texte} · $_duree',
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: statut.couleur,
+              fontSize: taille,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _ouvrirSignal() async {
+    final ok = await SignalApp.ouvrirACote();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Signal n\'est pas installé : ouverture du Play Store.'),
+      ));
+    }
+  }
+
+  /// Boutons du bas : Terminer + (Android) Signal à côté.
+  Widget _actions({required bool compact}) {
+    final signal = SignalApp.disponible && _etat != _Etat.erreur;
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      children: [
+        _boutonTerminer(compact: compact),
+        if (signal)
+          TextButton.icon(
+            onPressed: _ouvrirSignal,
+            icon: const Icon(Icons.vertical_split, color: RgColors.texte),
+            label: Text(compact ? 'Signal' : 'Signal à côté',
+                style: const TextStyle(color: RgColors.texte, fontSize: 16)),
+          ),
+      ],
+    );
+  }
+
+  Widget _boutonTerminer({required bool compact}) {
+    if (_etat == _Etat.erreur) {
+      return ElevatedButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('RETOUR'),
+      );
+    }
+    return TextButton.icon(
+      onPressed: _confirmerSortie,
+      icon: const Icon(Icons.call_end, color: RgColors.texte),
+      label: Text(compact ? 'Terminer' : 'Terminer le direct',
+          style: const TextStyle(color: RgColors.texte, fontSize: 16)),
+    );
+  }
+
+  /// Zone centrale : bouton micro (taille calculée selon la place), erreur
+  /// ou chargement. FittedBox garantit qu'aucun débordement n'est possible.
+  Widget _zoneCentrale(double largeur, double hauteur, {required bool compact}) {
+    Widget contenu;
+    if (_etat == _Etat.erreur) {
+      contenu = SizedBox(
+          width: largeur.clamp(200.0, 480.0).toDouble(), child: _blocErreur());
+    } else if (_pret) {
+      final aide = compact ? 0.0 : 48.0;
+      final diametre =
+          [hauteur - aide - 16, largeur - 32, 230.0].reduce((a, b) => a < b ? a : b)
+              .clamp(96.0, 230.0).toDouble();
+      contenu = _boutonMicro(diametre, avecAide: !compact);
+    } else {
+      contenu = const CircularProgressIndicator(color: RgColors.texte);
+    }
+    return Center(child: FittedBox(fit: BoxFit.scaleDown, child: contenu));
+  }
+
+  Widget _dispositionVerticale(BoxConstraints c, bool compact) {
+    final logo = c.maxHeight >= 640 ? 90.0 : (c.maxHeight >= 520 ? 60.0 : 0.0);
+    return Column(
+      children: [
+        if (logo > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Image.asset('assets/logo.png', height: logo),
+          ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, compact ? 6 : 4, 16, 0),
+          child: Text(
+            widget.nom,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: RgColors.texte,
+                fontSize: compact ? 18 : 22,
+                fontWeight: FontWeight.bold),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: _statutLigne(compact: compact),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, zone) =>
+                _zoneCentrale(zone.maxWidth, zone.maxHeight, compact: compact),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(bottom: compact ? 2 : 16),
+          child: _actions(compact: compact),
+        ),
+      ],
+    );
+  }
+
+  /// Fenêtre basse et large (écran partagé en paysage) : infos à gauche,
+  /// bouton micro à droite.
+  Widget _dispositionPaysage(BoxConstraints c) {
+    return Row(
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (c.maxHeight >= 260)
+                  Flexible(
+                    child: Image.asset('assets/logo.png', height: 60),
+                  ),
+                Text(
+                  widget.nom,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: RgColors.texte,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                _statutLigne(compact: true),
+                const SizedBox(height: 4),
+                _actions(compact: true),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, zone) =>
+                _zoneCentrale(zone.maxWidth, zone.maxHeight, compact: true),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _boutonMicro(double diametre, {required bool avecAide}) {
     final coupe = _microCoupe;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 230,
-          height: 230,
+          width: diametre,
+          height: diametre,
           child: ElevatedButton(
             onPressed: _basculerMicro,
             style: ElevatedButton.styleFrom(
@@ -345,25 +465,30 @@ class _LiveScreenState extends State<LiveScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(coupe ? Icons.mic_off : Icons.mic, size: 64),
-                const SizedBox(height: 8),
+                Icon(coupe ? Icons.mic_off : Icons.mic, size: diametre * 0.28),
+                SizedBox(height: diametre * 0.03),
                 Text(
                   coupe ? 'MUTÉ' : 'DÉ-MUTÉ',
-                  style: const TextStyle(
-                      fontSize: 30, fontWeight: FontWeight.w400),
+                  style: TextStyle(
+                      fontSize: diametre * 0.13, fontWeight: FontWeight.w400),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        Text(
-          coupe
-              ? 'Micro coupé – touchez pour reprendre la parole'
-              : 'Micro ouvert – vous pouvez verrouiller le téléphone',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: RgColors.texte),
-        ),
+        if (avecAide) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: 300,
+            child: Text(
+              coupe
+                  ? 'Micro coupé – touchez pour reprendre la parole'
+                  : 'Micro ouvert – vous pouvez verrouiller le téléphone',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: RgColors.texte),
+            ),
+          ),
+        ],
       ],
     );
   }
