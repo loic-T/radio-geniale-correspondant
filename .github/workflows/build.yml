@@ -21,6 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Le code du projet est fourni dans projet.zip (un seul fichier à
+      # téléverser sur GitHub) : on le décompresse par-dessus le dépôt.
       - name: Décompresser projet.zip
         run: unzip -o -q projet.zip -d .
 
@@ -35,6 +37,7 @@ jobs:
           flutter-version: 3.35.x
           cache: true
 
+      # Signature avec la clé fixe (secrets du dépôt)
       - name: Préparer la clé de signature
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -57,9 +60,9 @@ jobs:
       - name: Renommer l'APK avec la version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//' | tr -d '[:space:]')
-          NOM="RadioGeniale-Correspondant-v${VERSION}-build${{ github.run_number }}"
+          NOM="RadioGeniale-v${VERSION}-build${{ github.run_number }}"
           cp build/app/outputs/flutter-apk/app-release.apk "$NOM.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk RadioGeniale-Correspondant.apk
+          cp build/app/outputs/flutter-apk/app-release.apk RadioGeniale.apk
           echo "NOM_APK=$NOM" >> "$GITHUB_ENV"
           echo "VERSION_APP=$VERSION" >> "$GITHUB_ENV"
 
@@ -68,7 +71,9 @@ jobs:
           name: ${{ env.NOM_APK }}
           path: ${{ env.NOM_APK }}.apk
 
-      # Publication publique, uniquement quand le numéro de version change
+      # Publication publique (lien fixe vers la dernière version), uniquement
+      # quand le numéro de version de l'appli change, et seulement si l'APK
+      # est signé avec la clé fixe.
       - name: Vérifier si cette version est déjà publiée
         if: env.HAS_KEYSTORE == 'true'
         env:
@@ -89,7 +94,7 @@ jobs:
           name: Radio Géniale ${{ env.VERSION_APP }} (build ${{ github.run_number }})
           make_latest: true
           files: |
-            RadioGeniale-Correspondant.apk
+            RadioGeniale.apk
             ${{ env.NOM_APK }}.apk
 
   ios:
@@ -98,6 +103,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Le code du projet est fourni dans projet.zip (un seul fichier à
+      # téléverser sur GitHub) : on le décompresse par-dessus le dépôt.
       - name: Décompresser projet.zip
         run: unzip -o -q projet.zip -d .
 
@@ -108,14 +115,18 @@ jobs:
           cache: true
 
       - run: flutter pub get
+
+      # Compilation sans signature : vérifie que l'appli iOS se construit.
+      # Pour l'installer sur un iPhone, il faut la signer avec un compte
+      # Apple Developer.
       - run: flutter build ios --release --no-codesign
 
       - name: Archiver Runner.app
         run: |
           cd build/ios/iphoneos
-          zip -qr ../../../RadioGeniale-Correspondant-ios-non-signe.zip Runner.app
+          zip -qr ../../../RadioGeniale-ios-non-signe.zip Runner.app
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RadioGeniale-Correspondant-ios-non-signe
-          path: RadioGeniale-Correspondant-ios-non-signe.zip
+          name: RadioGeniale-ios-non-signe
+          path: RadioGeniale-ios-non-signe.zip
