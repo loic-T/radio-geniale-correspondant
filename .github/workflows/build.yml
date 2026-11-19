@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write  # pour publier les Releases (lien de téléchargement)
+
 concurrency:
   group: build
   cancel-in-progress: true
@@ -18,8 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Le code du projet est fourni dans projet.zip (un seul fichier à
-      # téléverser sur GitHub) : on le décompresse par-dessus le dépôt.
       - name: Décompresser projet.zip
         run: unzip -o -q projet.zip -d .
 
@@ -53,22 +54,43 @@ jobs:
       - run: flutter pub get
       - run: flutter build apk --release --dart-define=RG_BUILD=${{ github.run_number }}
 
-      - name: Renommer l'APK
-        run: cp build/app/outputs/flutter-apk/app-release.apk RadioGeniale-Correspondant.apk
+      - name: Renommer l'APK avec la version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//' | tr -d '[:space:]')
+          NOM="RadioGeniale-Correspondant-v${VERSION}-build${{ github.run_number }}"
+          cp build/app/outputs/flutter-apk/app-release.apk "$NOM.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk RadioGeniale-Correspondant.apk
+          echo "NOM_APK=$NOM" >> "$GITHUB_ENV"
+          echo "VERSION_APP=$VERSION" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RadioGeniale-Correspondant-android
-          path: RadioGeniale-Correspondant.apk
+          name: ${{ env.NOM_APK }}
+          path: ${{ env.NOM_APK }}.apk
 
-      - name: Paquet Play Store (AAB)
+      # Publication publique, uniquement quand le numéro de version change
+      - name: Vérifier si cette version est déjà publiée
         if: env.HAS_KEYSTORE == 'true'
-        run: flutter build appbundle --release --dart-define=RG_BUILD=${{ github.run_number }}
-      - uses: actions/upload-artifact@v4
-        if: env.HAS_KEYSTORE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${VERSION_APP}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            echo "PUBLIER=false" >> "$GITHUB_ENV"
+            echo "La version ${VERSION_APP} est déjà publiée : pas de nouvelle Release."
+          else
+            echo "PUBLIER=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Publier la Release
+        if: env.HAS_KEYSTORE == 'true' && env.PUBLIER == 'true'
+        uses: softprops/action-gh-release@v2
         with:
-          name: RadioGeniale-Correspondant-playstore
-          path: build/app/outputs/bundle/release/app-release.aab
+          tag_name: v${{ env.VERSION_APP }}
+          name: Radio Géniale ${{ env.VERSION_APP }} (build ${{ github.run_number }})
+          make_latest: true
+          files: |
+            RadioGeniale-Correspondant.apk
+            ${{ env.NOM_APK }}.apk
 
   ios:
     name: iOS (vérification de compilation)
